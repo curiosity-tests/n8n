@@ -37,7 +37,7 @@ run-name: "CI: Pull Requests (Build, Test, Lint) ${{ inputs.leg || 'push' }} ${{
 jobs:
   install-and-build:
     name: Install & Build
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_PROVIDER == 'github' && 'ubuntu-latest' || 'ubuntu-latest' }}
     env:
       NODE_OPTIONS: '--max-old-space-size=7168'
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -258,7 +258,7 @@ jobs:
   typecheck:
     name: Typecheck
     if: needs.install-and-build.outputs.ci == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_PROVIDER == 'github' && 'ubuntu-latest' || 'ubuntu-latest' }}
     needs: install-and-build
     env:
       # Inherited by every worker turbo spawns, so the real budget is
@@ -299,7 +299,7 @@ jobs:
   check-packaging:
     name: Check packaging
     if: needs.install-and-build.outputs.ci == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_PROVIDER == 'github' && 'ubuntu-latest' || 'ubuntu-latest' }}
     needs: install-and-build
     steps:
       - name: Checkout code
