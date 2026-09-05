@@ -33,7 +33,7 @@ on:
       runner:
         description: 'GitHub runner to use'
         required: false
-        default: 'blacksmith-2vcpu-ubuntu-2204'
+        default: 'ubuntu-latest'
         type: string
       timeout-minutes:
         description: 'Job timeout in minutes'
