@@ -54,7 +54,7 @@ permissions:
 jobs:
   unit-test-backend:
     name: Backend Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_PROVIDER == 'github' && 'ubuntu-latest' || 'ubuntu-latest' }}
     env:
       COVERAGE_ENABLED: ${{ inputs.collectCoverage }} # Coverage collected when true
       AFFECTED_PACKAGES: ${{ inputs.affectedPackages }}
@@ -131,7 +131,7 @@ jobs:
 
   integration-test-backend:
     name: Backend Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_PROVIDER == 'github' && 'ubuntu-latest' || 'ubuntu-latest' }}
     env:
       COVERAGE_ENABLED: ${{ inputs.collectCoverage }} # Coverage collected when true
       AFFECTED_PACKAGES: ${{ inputs.affectedPackages }}
@@ -201,7 +201,7 @@ jobs:
 
   unit-test-nodes:
     name: Nodes Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_PROVIDER == 'github' && 'ubuntu-latest' || 'ubuntu-latest' }}
     env:
       COVERAGE_ENABLED: ${{ inputs.collectCoverage }} # Coverage collected when true
       AFFECTED_PACKAGES: ${{ inputs.affectedPackages }}
@@ -256,7 +256,7 @@ jobs:
 
   unit-test-frontend:
     name: Frontend (${{ matrix.shard }}/2)
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_PROVIDER == 'github' && 'ubuntu-latest' || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
