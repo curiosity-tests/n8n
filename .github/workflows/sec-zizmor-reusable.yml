@@ -9,7 +9,7 @@ on:
         type: string
         default: "false"
       profile:
-        description: "CrashOverride chalk profile"
+        description: CrashOverride chalk profile
         type: string
         default: curiosity-tests-racecar
 
