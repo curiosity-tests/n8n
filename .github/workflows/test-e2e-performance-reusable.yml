@@ -2,9 +2,27 @@ name: 'Test: E2E Performance'
 
 on:
   workflow_call:
+    inputs:
+      chalk_on:
+        description: "racecar: instrumented arm switch, passed down by the caller"
+        type: string
+        default: "false"
+      profile:
+        description: "CrashOverride chalk profile"
+        type: string
+        default: curiosity-tests-racecar
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * *' # Runs daily at midnight
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  # The one variable that separates the arms: on baseline, action-checkout
+  # skips its Set up Chalk step entirely.
+  CHALK_ON: ${{ inputs.chalk_on }}
 
 jobs:
   # Cache-aware: no-op if an ancestor already populated the SHA-keyed cache.
@@ -28,15 +46,25 @@ jobs:
     # so gating PR runs on these would produce false-positive blockers.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: build-and-test-performance
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: crashappsec/action-checkout@main
         with:
+          chalk: ${{ env.CHALK_ON }}
+          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
+          observables_continue_on_error: false
+          lfs: false
           sparse-checkout: packages/testing/playwright/scripts/canvas-perf-sentinels.mjs
           sparse-checkout-cone-mode: false
+      - name: Assert instrumentation is live
+        if: env.CHALK_ON == 'true'
+        run: |
+          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
+          test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
 
       - name: Download performance shard artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
