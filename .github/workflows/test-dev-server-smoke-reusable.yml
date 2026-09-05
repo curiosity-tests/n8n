@@ -30,7 +30,7 @@ permissions:
 jobs:
   smoke:
     name: Dev-server smoke
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_PROVIDER == 'github' && 'ubuntu-latest' || 'ubuntu-latest' }}
     timeout-minutes: 15
     permissions:
       contents: read
