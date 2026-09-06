@@ -30,7 +30,7 @@ permissions:
 env:
   # The one variable that separates the arms: on baseline, action-checkout
   # skips its Set up Chalk step entirely.
-  CHALK_ON: ${{ github.event_name == 'workflow_dispatch' && inputs.leg != 'baseline' }}
+  CHALK_ON: ${{ inputs.leg == 'instrumented' }}
 
 run-name: "CI: Pull Requests (Build, Test, Lint) ${{ inputs.leg || 'push' }} ${{ inputs.racecar_run }}"
 
@@ -45,9 +45,9 @@ jobs:
       QA_METRICS_WEBHOOK_USER: ${{ secrets.QA_METRICS_WEBHOOK_USER }}
       QA_METRICS_WEBHOOK_PASSWORD: ${{ secrets.QA_METRICS_WEBHOOK_PASSWORD }}
     outputs:
-      ci: ${{ github.event_name == 'workflow_dispatch' && 'true' || fromJSON(steps.ci-filter.outputs.results).ci == true }}
+      ci: ${{ 'pull_request' == 'workflow_dispatch' && 'true' || fromJSON(steps.ci-filter.outputs.results).ci == true }}
       runtime: ${{ fromJSON(steps.ci-filter.outputs.results).runtime == true }}
-      unit: ${{ github.event_name == 'workflow_dispatch' && 'true' || fromJSON(steps.ci-filter.outputs.results).unit == true }}
+      unit: ${{ 'pull_request' == 'workflow_dispatch' && 'true' || fromJSON(steps.ci-filter.outputs.results).unit == true }}
       e2e: ${{ fromJSON(steps.ci-filter.outputs.results).e2e == true }}
       dev_server_smoke: ${{ fromJSON(steps.ci-filter.outputs.results)['dev-server-smoke'] == true }}
       workflows: ${{ fromJSON(steps.ci-filter.outputs.results).workflows == true }}
@@ -71,7 +71,7 @@ jobs:
           observables_continue_on_error: false
           lfs: false
           # Use merge_group SHA when in merge queue, otherwise PR merge ref
-          ref: ${{ github.event_name == 'merge_group' && github.event.merge_group.head_sha || format('refs/pull/{0}/merge', github.event.pull_request.number) }}
+          ref: ${{ 'pull_request' == 'merge_group' && github.event.merge_group.head_sha || format('refs/pull/{0}/merge', github.event.pull_request.number) }}
       - name: Assert instrumentation is live
         if: env.CHALK_ON == 'true'
         run: |
@@ -247,10 +247,10 @@ jobs:
     uses: ./.github/workflows/test-unit-reusable.yml
     needs: install-and-build
     with:
-      chalk_on: ${{ (github.event_name == 'workflow_dispatch' && inputs.leg != 'baseline') && 'true' || 'false' }}
+      chalk_on: ${{ inputs.leg == 'instrumented' && 'true' || 'false' }}
       profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
       ref: ${{ needs.install-and-build.outputs.commit_sha }}
-      collectCoverage: ${{ github.event_name != 'merge_group' }}
+      collectCoverage: ${{ 'pull_request' != 'merge_group' }}
       affectedPackages: ${{ needs.install-and-build.outputs.affected_packages }}
       changedFiles: ${{ needs.install-and-build.outputs.changed_files }}
     secrets: inherit
@@ -292,7 +292,7 @@ jobs:
     uses: ./.github/workflows/test-linting-reusable.yml
     needs: install-and-build
     with:
-      chalk_on: ${{ (github.event_name == 'workflow_dispatch' && inputs.leg != 'baseline') && 'true' || 'false' }}
+      chalk_on: ${{ inputs.leg == 'instrumented' && 'true' || 'false' }}
       profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
       ref: ${{ needs.install-and-build.outputs.commit_sha }}
 
@@ -332,7 +332,7 @@ jobs:
     needs: install-and-build
     if: >-
       github.repository == 'curiosity-tests/n8n' &&
-      github.event_name != 'merge_group' &&
+      'pull_request' != 'merge_group' &&
       (needs.install-and-build.outputs.runtime == 'true'
         || needs.install-and-build.outputs.e2e == 'true'
         || needs.install-and-build.outputs.e2e_performance == 'true'
@@ -340,7 +340,7 @@ jobs:
         || contains(github.event.pull_request.labels.*.name, 'run-perf-tests'))
     uses: ./.github/workflows/prepare-docker-reusable.yml
     with:
-      chalk_on: ${{ (github.event_name == 'workflow_dispatch' && inputs.leg != 'baseline') && 'true' || 'false' }}
+      chalk_on: ${{ inputs.leg == 'instrumented' && 'true' || 'false' }}
       profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
       branch: ${{ needs.install-and-build.outputs.commit_sha }}
     secrets: inherit
@@ -356,10 +356,10 @@ jobs:
         || needs.install-and-build.outputs.e2e == 'true'
         || contains(github.event.pull_request.labels.*.name, 'force-e2e')) &&
       needs.install-and-build.outputs.skip_tests != 'true' &&
-      github.event_name != 'merge_group'
+      'pull_request' != 'merge_group'
     uses: ./.github/workflows/test-e2e-reusable.yml
     with:
-      chalk_on: ${{ (github.event_name == 'workflow_dispatch' && inputs.leg != 'baseline') && 'true' || 'false' }}
+      chalk_on: ${{ inputs.leg == 'instrumented' && 'true' || 'false' }}
       profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
       branch: ${{ needs.install-and-build.outputs.commit_sha }}
       test-mode: docker-artifact
@@ -376,10 +376,10 @@ jobs:
   dev-server-smoke:
     name: Dev-server boot smoke
     needs: install-and-build
-    if: needs.install-and-build.outputs.dev_server_smoke == 'true' && github.event_name != 'merge_group'
+    if: needs.install-and-build.outputs.dev_server_smoke == 'true' && 'pull_request' != 'merge_group'
     uses: ./.github/workflows/test-dev-server-smoke-reusable.yml
     with:
-      chalk_on: ${{ (github.event_name == 'workflow_dispatch' && inputs.leg != 'baseline') && 'true' || 'false' }}
+      chalk_on: ${{ inputs.leg == 'instrumented' && 'true' || 'false' }}
       profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
       ref: ${{ needs.install-and-build.outputs.commit_sha }}
     secrets: inherit
@@ -390,7 +390,7 @@ jobs:
     if: needs.install-and-build.outputs.db == 'true'
     uses: ./.github/workflows/test-db-reusable.yml
     with:
-      chalk_on: ${{ (github.event_name == 'workflow_dispatch' && inputs.leg != 'baseline') && 'true' || 'false' }}
+      chalk_on: ${{ inputs.leg == 'instrumented' && 'true' || 'false' }}
       profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
       ref: ${{ needs.install-and-build.outputs.commit_sha }}
       matrix: ${{ needs.install-and-build.outputs.db_test_matrix }}
@@ -409,7 +409,7 @@ jobs:
       github.event.pull_request.head.repo.fork != true
     uses: ./.github/workflows/test-e2e-performance-reusable.yml
     with:
-      chalk_on: ${{ (github.event_name == 'workflow_dispatch' && inputs.leg != 'baseline') && 'true' || 'false' }}
+      chalk_on: ${{ inputs.leg == 'instrumented' && 'true' || 'false' }}
       profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
     secrets: inherit
 
@@ -419,7 +419,7 @@ jobs:
     if: needs.install-and-build.outputs.workflows == 'true'
     uses: ./.github/workflows/sec-ci-reusable.yml
     with:
-      chalk_on: ${{ (github.event_name == 'workflow_dispatch' && inputs.leg != 'baseline') && 'true' || 'false' }}
+      chalk_on: ${{ inputs.leg == 'instrumented' && 'true' || 'false' }}
       profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
       ref: ${{ needs.install-and-build.outputs.commit_sha }}
     secrets: inherit
@@ -430,7 +430,7 @@ jobs:
     if: needs.install-and-build.outputs.workflow_scripts == 'true'
     uses: ./.github/workflows/test-workflow-scripts-reusable.yml
     with:
-      chalk_on: ${{ (github.event_name == 'workflow_dispatch' && inputs.leg != 'baseline') && 'true' || 'false' }}
+      chalk_on: ${{ inputs.leg == 'instrumented' && 'true' || 'false' }}
       profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
       ref: ${{ needs.install-and-build.outputs.commit_sha }}
     secrets: inherit
@@ -446,11 +446,11 @@ jobs:
       needs.install-and-build.result == 'success' &&
       needs.install-and-build.outputs.instance_ai_workflow_eval == 'true' &&
       github.repository == 'curiosity-tests/n8n' &&
-      github.event_name != 'merge_group' &&
-      (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork)
+      'pull_request' != 'merge_group' &&
+      ('pull_request' != 'pull_request' || !github.event.pull_request.head.repo.fork)
     uses: ./.github/workflows/test-evals-discovery.yml
     with:
-      chalk_on: ${{ (github.event_name == 'workflow_dispatch' && inputs.leg != 'baseline') && 'true' || 'false' }}
+      chalk_on: ${{ inputs.leg == 'instrumented' && 'true' || 'false' }}
       profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
       branch: ${{ needs.install-and-build.outputs.commit_sha }}
     secrets: inherit
@@ -573,7 +573,7 @@ jobs:
     if: always() && needs.e2e-performance.result == 'success'
     uses: ./.github/workflows/util-qa-metrics-comment-reusable.yml
     with:
-      chalk_on: ${{ (github.event_name == 'workflow_dispatch' && inputs.leg != 'baseline') && 'true' || 'false' }}
+      chalk_on: ${{ inputs.leg == 'instrumented' && 'true' || 'false' }}
       profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
       metrics: memory-heap-used-baseline,memory-rss-baseline,instance-ai-heap-used-baseline,instance-ai-rss-baseline,agents-heap-used-baseline,agents-rss-baseline,docker-image-size-n8n,docker-image-size-runners,canvas-cold-load-S-ms,canvas-cold-load-M-ms,canvas-cold-load-L-ms,canvas-server-heap-M-mb,canvas-server-heap-L-mb,canvas-browser-heap-M-mb,canvas-browser-heap-L-mb,canvas-pan-frame-p95-M-ms,canvas-pan-frame-p95-L-ms,canvas-tidy-up-M-ms,canvas-tidy-up-L-ms,canvas-exec-heavy-M-ms,canvas-exec-heavy-L-ms
     secrets: inherit
