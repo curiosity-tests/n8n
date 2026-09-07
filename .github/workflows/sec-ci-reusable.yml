@@ -20,6 +20,11 @@ on:
 permissions:
   contents: read
   id-token: write
+  # sec-poutine-reusable.yml and sec-zizmor-reusable.yml both need
+  # security-events: write. Permissions narrow at every level, so this
+  # intermediate block re-zeroed the scope even after the top caller
+  # granted it. Upstream declares no block here at all.
+  security-events: write
 
 env:
   # The one variable that separates the arms: on baseline, action-checkout
