@@ -33,6 +33,7 @@ permissions:
   # the default token. Omitting it made every run a startup_failure with
   # zero jobs and no annotation.
   pull-requests: write
+  security-events: write
 
 env:
   # The one variable that separates the arms: on baseline, action-checkout
