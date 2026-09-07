@@ -26,6 +26,13 @@ concurrency:
 permissions:
   contents: read
   id-token: write
+  # test-evals-discovery.yml and util-qa-metrics-comment-reusable.yml both
+  # declare `pull-requests: write`. A called workflow cannot request a scope
+  # the caller lacks, and declaring this block at all zeroes every unlisted
+  # scope -- upstream declares no block, so it inherited pull-requests from
+  # the default token. Omitting it made every run a startup_failure with
+  # zero jobs and no annotation.
+  pull-requests: write
 
 env:
   # The one variable that separates the arms: on baseline, action-checkout
